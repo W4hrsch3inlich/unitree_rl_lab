@@ -43,7 +43,7 @@ class UnitreeUsdFileCfg(sim_utils.UsdFileCfg):
         max_depenetration_velocity=1.0,
     )
     articulation_props = sim_utils.ArticulationRootPropertiesCfg(
-        enabled_self_collisions=True, solver_position_iteration_count=8, solver_velocity_iteration_count=4
+        enabled_self_collisions=True, solver_position_iteration_count=16, solver_velocity_iteration_count=12
     )
 
 
@@ -269,6 +269,88 @@ UNITREE_H1_CFG = UnitreeArticulationCfg(
                 "torso_joint": 6.0,
             },
             armature=0.01,
+        ),
+    },
+    joint_sdk_names=[
+        "right_hip_roll_joint",
+        "right_hip_pitch_joint",
+        "right_knee_joint",
+        "left_hip_roll_joint",
+        "left_hip_pitch_joint",
+        "left_knee_joint",
+        "torso_joint",
+        "left_hip_yaw_joint",
+        "right_hip_yaw_joint",
+        "",
+        "left_ankle_joint",
+        "right_ankle_joint",
+        "right_shoulder_pitch_joint",
+        "right_shoulder_roll_joint",
+        "right_shoulder_yaw_joint",
+        "right_elbow_joint",
+        "left_shoulder_pitch_joint",
+        "left_shoulder_roll_joint",
+        "left_shoulder_yaw_joint",
+        "left_elbow_joint",
+    ],
+)
+
+UNITREE_H1_MUJOCO_CFG = UnitreeArticulationCfg(
+    # spawn=UnitreeUrdfFileCfg(
+    #     asset_path=f"{UNITREE_ROS_DIR}/robots/h1_description/urdf/h1.urdf",
+    # ),
+    spawn=UnitreeUsdFileCfg(
+        usd_path=f"{UNITREE_MODEL_DIR}/H1/h1/usd/h1.usd",
+    ),
+    init_state=ArticulationCfg.InitialStateCfg(
+        pos=(0.0, 0.0, 1.1),
+        joint_pos={
+            ".*_hip_pitch_joint": -0.1,
+            ".*_knee_joint": 0.3,
+            ".*_ankle_joint": -0.2,
+            ".*_shoulder_pitch_joint": 0.20,
+            ".*_elbow_joint": 0.32,
+        },
+        joint_vel={".*": 0.0},
+    ),
+    actuators={
+        "GO2HV-1": IdealPDActuatorCfg(
+            joint_names_expr=[".*ankle.*", ".*_shoulder_pitch_.*", ".*_shoulder_roll_.*"],
+            effort_limit=40,
+            velocity_limit=9,
+            stiffness={
+                ".*ankle.*": 40.0,
+                ".*_shoulder_.*": 100.0,
+            },
+            damping=3.0,   # Lowered from high values, raised from MuJoCo 1.0
+            armature=0.05, # Increased to match motor inertia better
+        ),
+        "GO2HV-2": IdealPDActuatorCfg(
+            joint_names_expr=[".*_shoulder_yaw_.*", ".*_elbow_.*"],
+            effort_limit=18,
+            velocity_limit=20,
+            stiffness=50,
+            damping=3.0,
+            armature=0.05,
+        ),
+        "M107-24-1": IdealPDActuatorCfg(
+            joint_names_expr=[".*_knee_.*"],
+            effort_limit=300.0,
+            velocity_limit=14.0,
+            stiffness=200.0,
+            damping=3.0,   # Matched for system-wide consistency
+            armature=0.05,
+        ),
+        "M107-24-2": IdealPDActuatorCfg(
+            joint_names_expr=[".*_hip_.*", "torso_joint"],
+            effort_limit=200,
+            velocity_limit=23.0,
+            stiffness={
+                ".*_hip_.*": 150.0,
+                "torso_joint": 300.0,
+            },
+            damping=3.0,   # Removed the 6.0 "Torso Tax" to allow better turning
+            armature=0.05,
         ),
     },
     joint_sdk_names=[
